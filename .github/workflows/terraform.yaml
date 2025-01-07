@@ -2,11 +2,13 @@ name: Terraform Deploy
 
 on:
   push:
+    branches:
+      - 'main' # Trigger only on direct push to main
     branches-ignore:
-      - main  # Trigger on any push except to the main branch
+      - '*'  # Trigger on pushes to any branch except main
   pull_request:
     branches:
-      - main  # Trigger on PRs to main
+      - main # Trigger on PRs to main
   workflow_dispatch:
 
 permissions:
@@ -26,20 +28,23 @@ jobs:
     name: Terraform
     runs-on: ubuntu-latest
     environment: production
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.pull_request.head.ref }} 
-      
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+
       - name: Generate Terraform docs
         uses: terraform-docs/gh-actions@v1.3.0
         with:
-            working-dir: .
-            output-file: README.md
-            output-method: inject
-            git-push: "true"
+          working-dir: .
+          output-file: README.md
+          output-method: inject
+          git-push: "true"
 
       - name: Run Trivy vulnerability scanner on Infrastructure as Code
         uses: aquasecurity/trivy-action@master
@@ -88,9 +93,9 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color
-        if: github.event_name != 'pull_request'
 
+      # Apply only on push to main AND if the push is from a merged PR
       - name: Terraform Apply
         id: apply
         run: terraform apply -no-color -auto-approve
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.pull_request.merged == true
