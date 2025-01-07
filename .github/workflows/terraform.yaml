@@ -1,9 +1,12 @@
 name: Terraform Deploy
 
 on:
+  push:
+    branches-ignore:
+      - main  # Trigger on any push except to the main branch
   pull_request:
     branches:
-      - main
+      - main  # Trigger on PRs to main
   workflow_dispatch:
 
 permissions:
