@@ -3,12 +3,7 @@ name: Terraform Deploy
 on:
   push:
     branches:
-      - 'main' # Trigger only on direct push to main
-    branches-ignore:
-      - '*'  # Trigger on pushes to any branch except main
-  pull_request:
-    branches:
-      - main # Trigger on PRs to main
+      - 'main'
   workflow_dispatch:
 
 permissions:
