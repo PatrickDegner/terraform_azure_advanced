@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write
   pull-requests: write
+  security-events: write
 
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -22,10 +26,33 @@ jobs:
     name: Terraform
     runs-on: ubuntu-latest
     environment: production
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner on Infrastructure as Code
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Checkov Infrastructure as Code scan
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: false
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -45,7 +72,9 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color
+        if: github.event_name != 'pull_request'
 
-      - name: Terraform apply
+      - name: Terraform Apply
         id: apply
         run: terraform apply -no-color -auto-approve
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
