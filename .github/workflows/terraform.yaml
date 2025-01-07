@@ -68,20 +68,7 @@ jobs:
         with:
           directory: .
           framework: terraform
-          soft_fail: false
-          output_format: sarif
-          output_file_path: console,checkov-results.sarif
-        
-      - name: Upload Checkov scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'checkov-results.sarif'
-
-      - name: Upload Checkov results as an artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkov-results
-          path: checkov-results.sarif
+          soft_fail: false        
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
